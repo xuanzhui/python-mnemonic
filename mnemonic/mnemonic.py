@@ -32,6 +32,7 @@ from pbkdf2 import PBKDF2
 
 PBKDF2_ROUNDS = 2048
 
+is_py2 = sys.version_info[0] == 2
 
 class ConfigurationError(Exception):
     pass
@@ -47,8 +48,8 @@ def binary_search(a, x, lo=0, hi=None):                # can't use a to specify 
 class Mnemonic(object):
     def __init__(self, language):
         self.radix = 2048
-        with open('%s/%s.txt' % (self._get_directory(), language), 'r') as f:
-            self.wordlist = [w.strip().decode('utf8') if sys.version < '3' else w.strip() for w in f.readlines()]
+        with open('%s/%s.txt' % (self._get_directory(), language), 'r', encoding='utf8') as f:
+            self.wordlist = [w.strip().decode('utf8') if is_py2 else w.strip() for w in f.readlines()]
         if len(self.wordlist) != self.radix:
             raise ConfigurationError('Wordlist should contain %d words, but it contains %d words.' % (self.radix, len(self.wordlist)))
 
@@ -62,9 +63,9 @@ class Mnemonic(object):
 
     @classmethod
     def normalize_string(cls, txt):
-        if isinstance(txt, str if sys.version < '3' else bytes):
+        if isinstance(txt, str if is_py2 else bytes):
             utxt = txt.decode('utf8')
-        elif isinstance(txt, unicode if sys.version < '3' else str):  # noqa: F821
+        elif isinstance(txt, unicode if is_py2 else str):  # noqa: F821
             utxt = txt
         else:
             raise TypeError("String value expected")
@@ -123,7 +124,7 @@ class Mnemonic(object):
                     entropy[ii] |= 1 << (7 - jj)
         # Take the digest of the entropy.
         hashBytes = hashlib.sha256(entropy).digest()
-        if sys.version < '3':
+        if is_py2:
             hashBits = list(itertools.chain.from_iterable(([ord(c) & (1 << (7 - i)) != 0 for i in range(8)] for c in hashBytes)))
         else:
             hashBits = list(itertools.chain.from_iterable(([c & (1 << (7 - i)) != 0 for i in range(8)] for c in hashBytes)))
@@ -143,10 +144,10 @@ class Mnemonic(object):
         for i in range(len(b) // 11):
             idx = int(b[i * 11:(i + 1) * 11], 2)
             result.append(self.wordlist[idx])
-        if self.detect_language(' '.join(result)) == 'japanese':  # Japanese must be joined by ideographic space.
-            result_phrase = u'\u3000'.join(result)
-        else:
-            result_phrase = ' '.join(result)
+        # if self.detect_language(' '.join(result)) == 'japanese':  # Japanese must be joined by ideographic space.
+            # result_phrase = u'\u3000'.join(result)
+        # else:
+        result_phrase = ' '.join(result)
         return result_phrase
 
     def check(self, mnemonic):

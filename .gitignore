@@ -2,3 +2,5 @@
 build/
 dist/
 mnemonic.egg-info/
+.DS_Store
+
